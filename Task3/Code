@@ -1,0 +1,35 @@
+# Load necessary libraries
+library(tm)
+library(tokenizers)
+library(sentiment)
+library(caret)
+library(ggplot2)
+
+# Load data
+data <- read.csv("data.csv")
+
+# Preprocess data
+data <- data %>%
+  mutate(text = tolower(text)) %>%
+  mutate(text = removePunctuation(text)) %>%
+  mutate(text = removeStopwords(text)) %>%
+  tokenize(text, "words")
+
+# Perform sentiment analysis
+sentiment_data <- sentiment(data$text, language = "english")
+
+# Train a machine learning model
+train_control <- trainControl(method = "cv", number = 10)
+model <- train(sentiment ~., data = sentiment_data, method = "rf", trControl = train_control)
+
+# Predict sentiment of new data
+new_data <- data.frame(text = c("I love this product!", "This product is terrible."))
+new_sentiment <- predict(model, new_data)
+
+# Visualize results
+ggplot(sentiment_data, aes(x = sentiment, fill = sentiment)) + 
+  geom_bar() + 
+  labs(x = "Sentiment", y = "Frequency", fill = "Sentiment")
+
+# Evaluate model performance
+confusionMatrix(data = sentiment_data, reference = "sentiment", prediction = "predicted")
